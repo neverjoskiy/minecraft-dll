@@ -1,7 +1,7 @@
 use std::ffi::CStr;
 
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
-use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
+use windows::Win32::System::Diagnostics::Debug::{IMAGE_NT_HEADERS64, IMAGE_SECTION_HEADER, WriteProcessMemory};
 use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
 use windows::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE, VirtualAllocEx,
@@ -9,7 +9,6 @@ use windows::Win32::System::Memory::{
 };
 use windows::Win32::System::SystemServices::{
     IMAGE_BASE_RELOCATION, IMAGE_DOS_HEADER, IMAGE_IMPORT_BY_NAME, IMAGE_IMPORT_DESCRIPTOR,
-    IMAGE_NT_HEADERS64, IMAGE_SECTION_HEADER,
 };
 use windows::Win32::System::Threading::{
     CreateRemoteThread, WaitForSingleObject,
