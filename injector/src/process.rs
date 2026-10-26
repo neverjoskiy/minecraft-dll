@@ -10,7 +10,7 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::Threading::{
-    GetCurrentProcess, IsWow64Process, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
+    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
 };
 
 pub fn find_pid_by_name(name: &str) -> Result<u32, String> {

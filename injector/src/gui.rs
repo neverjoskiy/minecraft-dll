@@ -1,14 +1,13 @@
-use std::ptr;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-static mut HWND_PROCESS: HWND = HWND(0);
-static mut HWND_PID: HWND = HWND(0);
-static mut HWND_DLL: HWND = HWND(0);
-static mut HWND_METHOD: HWND = HWND(0);
-static mut HWND_WAIT: HWND = HWND(0);
-static mut HWND_STATUS: HWND = HWND(0);
+static mut HWND_PROCESS: HWND = HWND(std::ptr::null_mut());
+static mut HWND_PID: HWND = HWND(std::ptr::null_mut());
+static mut HWND_DLL: HWND = HWND(std::ptr::null_mut());
+static mut HWND_METHOD: HWND = HWND(std::ptr::null_mut());
+static mut HWND_WAIT: HWND = HWND(std::ptr::null_mut());
+static mut HWND_STATUS: HWND = HWND(std::ptr::null_mut());
 
 const ID_PROCESS: i32 = 101;
 const ID_PID: i32 = 102;
@@ -30,7 +29,7 @@ fn get_text(hwnd: HWND) -> String {
 fn set_status(text: &str) {
     unsafe {
         let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
-        SetWindowTextW(HWND_STATUS, windows::core::PCWSTR(wide.as_ptr()));
+        let _ = SetWindowTextW(HWND_STATUS, windows::core::PCWSTR(wide.as_ptr()));
     }
 }
 
@@ -38,55 +37,81 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
     match msg {
         WM_CREATE => {
             let hinst = GetModuleHandleW(None).unwrap_or_default();
-            let font = GetStockObject(SYSTEM_FONT);
-            let create = |class: &str, title: &str, style: WINDOW_STYLE, x, y, w, h, id| {
-                let cls: Vec<u16> = class.encode_utf16().chain(std::iter::once(0)).collect();
-                let ttl: Vec<u16> = title.encode_utf16().chain(std::iter::once(0)).collect();
+            let hinst_opt = Some(hinst);
+            let parent = Some(hwnd);
+            let make_edit = |x, y, id| {
                 CreateWindowExW(
                     WINDOW_EX_STYLE::default(),
-                    windows::core::PCWSTR(cls.as_ptr()),
-                    windows::core::PCWSTR(ttl.as_ptr()),
-                    style,
-                    x, y, w, h,
-                    hwnd,
-                    windows::Win32::UI::WindowsAndMessaging::HMENU(id as *mut _),
-                    hinst,
+                    windows::core::PCWSTR("Edit\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                    windows::core::PCWSTR("\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                    WS_CHILD | WS_VISIBLE | WS_BORDER,
+                    x, y, 250, 22,
+                    parent,
+                    Some(windows::Win32::UI::WindowsAndMessaging::HMENU(id as *mut _)),
+                    hinst_opt,
                     None,
                 )
+                .unwrap_or_default()
             };
-            HWND_PROCESS = create("Edit", "", WS_CHILD | WS_VISIBLE | WS_BORDER, 100, 20, 250, 22, ID_PROCESS).unwrap_or_default();
-            HWND_PID = create("Edit", "", WS_CHILD | WS_VISIBLE | WS_BORDER, 100, 50, 250, 22, ID_PID).unwrap_or_default();
-            HWND_DLL = create("Edit", "", WS_CHILD | WS_VISIBLE | WS_BORDER, 100, 80, 250, 22, ID_DLL).unwrap_or_default();
+            HWND_PROCESS = make_edit(100, 20, ID_PROCESS);
+            HWND_PID = make_edit(100, 50, ID_PID);
+            HWND_DLL = make_edit(100, 80, ID_DLL);
+
             HWND_METHOD = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 windows::core::PCWSTR("ComboBox\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 windows::core::PCWSTR("\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
-                WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | CBS_DROPDOWNLIST as u32),
+                WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | 3),
                 100, 110, 250, 80,
-                hwnd,
-                windows::Win32::UI::WindowsAndMessaging::HMENU(ID_METHOD as *mut _),
-                hinst,
+                parent,
+                Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_METHOD as *mut _)),
+                hinst_opt,
                 None,
-            ).unwrap_or_default();
+            )
+            .unwrap_or_default();
             let s1: Vec<u16> = "remote-thread\0".encode_utf16().collect();
             let s2: Vec<u16> = "manual\0".encode_utf16().collect();
-            let _ = SendMessageW(HWND_METHOD, CB_ADDSTRING, WPARAM(0), LPARAM(s1.as_ptr() as isize));
-            let _ = SendMessageW(HWND_METHOD, CB_ADDSTRING, WPARAM(0), LPARAM(s2.as_ptr() as isize));
-            let _ = SendMessageW(HWND_METHOD, CB_SETCURSEL, WPARAM(0), LPARAM(0));
+            let _ = SendMessageW(HWND_METHOD, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(s1.as_ptr() as isize)));
+            let _ = SendMessageW(HWND_METHOD, CB_ADDSTRING, Some(WPARAM(0)), Some(LPARAM(s2.as_ptr() as isize)));
+            let _ = SendMessageW(HWND_METHOD, CB_SETCURSEL, Some(WPARAM(0)), Some(LPARAM(0)));
+
             HWND_WAIT = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 windows::core::PCWSTR("Button\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 windows::core::PCWSTR("Wait\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
-                WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | BS_AUTOCHECKBOX as u32),
+                WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | 3),
                 100, 140, 80, 22,
-                hwnd,
-                windows::Win32::UI::WindowsAndMessaging::HMENU(ID_WAIT as *mut _),
-                hinst,
+                parent,
+                Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_WAIT as *mut _)),
+                hinst_opt,
                 None,
-            ).unwrap_or_default();
-            let _ = create("Button", "Inject", WS_CHILD | WS_VISIBLE, 200, 140, 150, 22, ID_INJECT);
-            HWND_STATUS = create("Static", "Ready", WS_CHILD | WS_VISIBLE, 20, 175, 330, 22, ID_STATUS).unwrap_or_default();
-            let _ = font;
+            )
+            .unwrap_or_default();
+
+            let _ = CreateWindowExW(
+                WINDOW_EX_STYLE::default(),
+                windows::core::PCWSTR("Button\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                windows::core::PCWSTR("Inject\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                WS_CHILD | WS_VISIBLE,
+                200, 140, 150, 22,
+                parent,
+                Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_INJECT as *mut _)),
+                hinst_opt,
+                None,
+            );
+
+            HWND_STATUS = CreateWindowExW(
+                WINDOW_EX_STYLE::default(),
+                windows::core::PCWSTR("Static\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                windows::core::PCWSTR("Ready\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                WS_CHILD | WS_VISIBLE,
+                20, 175, 330, 22,
+                parent,
+                Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_STATUS as *mut _)),
+                hinst_opt,
+                None,
+            )
+            .unwrap_or_default();
             LRESULT(0)
         }
         WM_COMMAND => {
@@ -94,9 +119,14 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                 let process = get_text(HWND_PROCESS);
                 let pid_text = get_text(HWND_PID);
                 let dll = get_text(HWND_DLL);
-                let wait = SendMessageW(HWND_WAIT, BM_GETCHECK, WPARAM(0), LPARAM(0)).0 == 1;
-                let sel = SendMessageW(HWND_METHOD, CB_GETCURSEL, WPARAM(0), LPARAM(0)).0 as usize;
+                let wait = SendMessageW(HWND_WAIT, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 == 1;
+                let sel = SendMessageW(HWND_METHOD, CB_GETCURSEL, Some(WPARAM(0)), Some(LPARAM(0))).0 as usize;
                 let method = if sel == 1 { "manual" } else { "remote-thread" };
+
+                if dll.trim().is_empty() {
+                    set_status("missing dll");
+                    return LRESULT(0);
+                }
 
                 let mut pid: Option<u32> = None;
                 if !pid_text.trim().is_empty() {
@@ -107,11 +137,6 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                             return LRESULT(0);
                         }
                     }
-                }
-
-                if dll.trim().is_empty() {
-                    set_status("missing dll");
-                    return LRESULT(0);
                 }
 
                 if pid.is_none() && process.trim().is_empty() {
@@ -168,9 +193,11 @@ pub fn run() -> i32 {
         let class_name: Vec<u16> = "InjectorGui\0".encode_utf16().collect();
         let wc = WNDCLASSW {
             lpfnWndProc: Some(wnd_proc),
-            hInstance: hinst,
+            hInstance: hinst.into(),
             lpszClassName: windows::core::PCWSTR(class_name.as_ptr()),
-            hbrBackground: windows::Win32::Graphics::Gdi::HBRUSH(GetStockObject(WHITE_BRUSH).0),
+            hbrBackground: windows::Win32::Graphics::Gdi::HBRUSH(
+                windows::Win32::Graphics::Gdi::GetStockObject(windows::Win32::Graphics::Gdi::WHITE_BRUSH).0,
+            ),
             ..Default::default()
         };
         RegisterClassW(&wc);
@@ -184,7 +211,7 @@ pub fn run() -> i32 {
             100, 100, 400, 230,
             None,
             None,
-            hinst,
+            Some(hinst),
             None,
         );
 
