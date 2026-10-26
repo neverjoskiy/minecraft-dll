@@ -2,6 +2,7 @@
 
 mod cli;
 mod config;
+mod gui;
 mod inject;
 mod jvmti;
 mod log;
@@ -10,6 +11,9 @@ mod process;
 fn main() {
     log::init();
     let raw: Vec<String> = std::env::args().collect();
+    if raw.len() <= 1 || raw.iter().any(|a| a == "--gui") {
+        std::process::exit(gui::run());
+    }
     let parsed = cli::parse(&raw[1..]);
     let args = match parsed {
         Ok(a) => a,
