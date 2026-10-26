@@ -9,7 +9,6 @@ use windows::Win32::Security::{
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
-use windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE_AMD64;
 use windows::Win32::System::Threading::{
     GetCurrentProcess, IsWow64Process, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
 };
@@ -95,8 +94,8 @@ pub fn open_process(pid: u32) -> Result<HANDLE, String> {
 pub fn is_x64(pid: u32) -> Result<bool, String> {
     let handle = open_process(pid)?;
     unsafe {
-        let mut wow64: windows::Win32::Foundation::BOOL = windows::Win32::Foundation::BOOL(0);
-        let result = windows::Win32::System::Threading::IsWow64Process(handle, &mut wow64);
+        let mut wow64: windows::core::BOOL = windows::core::BOOL(0);
+        let result = windows::Win32::System::Threading::IsWow64Process(handle, &mut wow64 as *mut _);
         let _ = CloseHandle(handle);
         match result {
             Ok(()) => Ok(wow64.0 == 0),
