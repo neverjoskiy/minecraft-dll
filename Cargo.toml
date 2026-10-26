@@ -1,0 +1,47 @@
+[package]
+name = "XZ"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+egui = "0.31.1"
+egui_glow = "0.31.1"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+jni = "0.21.1"
+jvmti-bindings = "2.2.1"
+min_hook_rs = "2.2.0"
+ristretto_classfile = "0.32.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["serde", "v4"] }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
+# Lua 5.2 via mlua (Figura-compatible semantics); vendored builds lua52 from source.
+mlua = { version = "0.10", features = ["lua52", "vendored", "send"] }
+
+[dependencies.windows]
+version = "0.60.0"
+features = [
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_Foundation",
+    "Win32_Media_MediaFoundation",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
+    "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_UI_WindowsAndMessaging"
+]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+panic = "abort"

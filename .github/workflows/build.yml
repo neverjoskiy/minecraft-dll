@@ -1,0 +1,25 @@
+name: Build XZ
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: XZ-dll
+          path: target/release/XZ.dll
+          if-no-files-found: error
