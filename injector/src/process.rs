@@ -1,17 +1,17 @@
 use std::thread;
 use std::time::Duration;
 
-use windows::Win32::Foundation::{CloseHandle, HANDLE};
+use windows::Win32::Foundation::{CloseHandle, HANDLE, LUID};
 use windows::Win32::Security::{
-    AdjustTokenPrivileges, LUID, LookupPrivilegeValueW, OpenProcessToken, TOKEN_ADJUST_PRIVILEGES,
-    TOKEN_PRIVILEGES, TOKEN_QUERY,
+    AdjustTokenPrivileges, LookupPrivilegeValueW, TOKEN_ADJUST_PRIVILEGES, TOKEN_PRIVILEGES,
+    TOKEN_QUERY,
 };
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE_AMD64;
 use windows::Win32::System::Threading::{
-    IsWow64Process2, OpenProcess, PROCESS_ALL_ACCESS,
+    GetCurrentProcess, IsWow64Process2, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
 };
 
 pub fn find_pid_by_name(name: &str) -> Result<u32, String> {
@@ -55,7 +55,7 @@ pub fn enable_debug_privilege() {
     unsafe {
         let mut token = HANDLE::default();
         if OpenProcessToken(
-            windows::Win32::Foundation::GetCurrentProcess(),
+            GetCurrentProcess(),
             TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
             &mut token,
         )
@@ -74,7 +74,7 @@ pub fn enable_debug_privilege() {
             ..Default::default()
         };
         tp.Privileges[0].Luid = luid;
-        tp.Privileges[0].Attributes = 0x00000002;
+        tp.Privileges[0].Attributes = windows::Win32::Security::TOKEN_PRIVILEGES_ATTRIBUTES(0x00000002);
         let _ = AdjustTokenPrivileges(token, false, Some(&tp), 0, None, None);
         let _ = CloseHandle(token);
     }

@@ -1,17 +1,18 @@
 use std::ffi::CStr;
 
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
-use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress, LoadLibraryA};
+use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
+use windows::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
 use windows::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PAGE_READWRITE, VirtualAllocEx,
-    VirtualFreeEx, VirtualProtectEx, WriteProcessMemory,
+    VirtualFreeEx, VirtualProtectEx,
 };
 use windows::Win32::System::SystemServices::{
     IMAGE_BASE_RELOCATION, IMAGE_DOS_HEADER, IMAGE_IMPORT_BY_NAME, IMAGE_IMPORT_DESCRIPTOR,
     IMAGE_NT_HEADERS64, IMAGE_SECTION_HEADER,
 };
 use windows::Win32::System::Threading::{
-    CreateRemoteThread, GetExitCodeThread, WaitForSingleObject,
+    CreateRemoteThread, WaitForSingleObject,
 };
 
 pub fn inject(pid: u32, dll_path: &str) -> Result<(), String> {
@@ -76,14 +77,9 @@ unsafe fn inject_inner(handle: HANDLE, data: &[u8]) -> Result<(), String> {
         }
     }
 
-    let delta = 0isize;
-    let _ = delta;
-
     let reloc_dir = &nt.OptionalHeader.DataDirectory[5];
     let reloc_rva = reloc_dir.VirtualAddress as usize;
     let reloc_size = reloc_dir.Size as usize;
-    if preferred_base == 0 {
-    }
     let actual_base_u64: u64;
 
     let remote_mem = VirtualAllocEx(
@@ -237,30 +233,15 @@ unsafe fn call_dll_main(handle: HANDLE, entry: *mut core::ffi::c_void, base: *mu
     if stub_mem.is_null() {
         return Err("stub alloc failed".to_string());
     }
-    let bytes: [u8; 24] = [
-        0x48, 0x8B, 0x01, // mov rax, [rcx]
-        0x48, 0x8B, 0x51, 0x08, // mov rdx, [rcx+8]
-        0x49, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // mov r8, 1? 
-        0x00, 0x00, 0x00, 0x00,
-    ];
-    let _ = bytes;
     let mut buf = vec![0u8; stub_size];
-    // Build stub manually:
-    // mov r9, [rcx]        ; entry
-    // mov rcx, [rcx+8]     ; base
-    // mov rdx, 1           ; DLL_PROCESS_ATTACH
-    // xor r8d, r8d         ; reserved
-    // call r9
-    // xor eax, eax
-    // ret
     let code: Vec<u8> = vec![
-        0x4C, 0x8B, 0x09, // mov r9, [rcx]
-        0x48, 0x8B, 0x49, 0x08, // mov rcx, [rcx+8]
-        0xBA, 0x01, 0x00, 0x00, 0x00, // mov edx, 1
-        0x45, 0x31, 0xC0, // xor r8d, r8d
-        0x41, 0xFF, 0xD1, // call r9
-        0x31, 0xC0, // xor eax, eax
-        0xC3, // ret
+        0x4C, 0x8B, 0x09,
+        0x48, 0x8B, 0x49, 0x08,
+        0xBA, 0x01, 0x00, 0x00, 0x00,
+        0x45, 0x31, 0xC0,
+        0x41, 0xFF, 0xD1,
+        0x31, 0xC0,
+        0xC3,
     ];
     buf[..code.len()].copy_from_slice(&code);
 

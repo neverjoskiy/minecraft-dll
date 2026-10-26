@@ -1,10 +1,8 @@
-use std::ffi::CString;
-
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
+use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 use windows::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAllocEx, VirtualFreeEx,
-    WriteProcessMemory,
 };
 use windows::Win32::System::Threading::{CreateRemoteThread, GetExitCodeThread, WaitForSingleObject};
 
