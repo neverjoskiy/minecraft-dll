@@ -37,7 +37,7 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
     match msg {
         WM_CREATE => {
             let hinst = GetModuleHandleW(None).unwrap_or_default();
-            let hinst_opt = Some(hinst);
+            let hinst_opt = Some(hinst.into());
             let parent = Some(hwnd);
             let make_edit = |x, y, id| {
                 CreateWindowExW(
@@ -211,7 +211,7 @@ pub fn run() -> i32 {
             100, 100, 400, 230,
             None,
             None,
-            Some(hinst),
+            Some(hinst.into()),
             None,
         );
 

@@ -282,6 +282,16 @@ pub trait ClientModule: Send {
 
 ---
 
+## Инжектор (`injector/`)
+
+Отдельный бинарный crate (edition 2024, Windows x64) для инжекции `XZ.dll` в процесс Minecraft.
+
+- Методы: `remote-thread` (CreateRemoteThread + LoadLibraryA) и `manual` (ручной маппинг PE).
+- CLI: `--process`, `--pid`, `--dll`, `--method`, `--wait`, `--launch` (JVMTI `-agentpath`), `--gui`.
+- Без аргументов запускается GUI-окно (поля процесс/PID/DLL/метод/wait и кнопка Inject).
+- Проверка архитектуры x64, повышение прав (SeDebugPrivilege), логи/конфиг в `%TEMP%\injector\`.
+- Сборка/тесты: `.github/workflows/build-injector.yml` (windows-latest, cargo test, cargo build --release, артефакт injector.exe).
+
 ## Ответственность
 
 Проект предназначен для модификации клиента Minecraft, что может нарушать условия использования игры и привести к блокировке аккаунта. Использование на свой страх и риск.
