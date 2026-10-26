@@ -11,7 +11,7 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
 };
 use windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE_AMD64;
 use windows::Win32::System::Threading::{
-    GetCurrentProcess, IsWow64Process2, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
+    GetCurrentProcess, IsWow64Process, OpenProcess, OpenProcessToken, PROCESS_ALL_ACCESS,
 };
 
 pub fn find_pid_by_name(name: &str) -> Result<u32, String> {
@@ -95,12 +95,11 @@ pub fn open_process(pid: u32) -> Result<HANDLE, String> {
 pub fn is_x64(pid: u32) -> Result<bool, String> {
     let handle = open_process(pid)?;
     unsafe {
-        let mut machine = windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE(0);
-        let mut native = machine;
-        let result = IsWow64Process2(handle, &mut machine, Some(&mut native));
+        let mut wow64: windows::Win32::Foundation::BOOL = windows::Win32::Foundation::BOOL(0);
+        let result = windows::Win32::System::Threading::IsWow64Process(handle, &mut wow64);
         let _ = CloseHandle(handle);
         match result {
-            Ok(()) => Ok(machine == IMAGE_FILE_MACHINE_AMD64),
+            Ok(()) => Ok(wow64.0 == 0),
             Err(e) => Err(e.to_string()),
         }
     }
