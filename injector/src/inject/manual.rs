@@ -40,10 +40,10 @@ unsafe fn inject_inner(handle: HANDLE, data: &[u8]) -> Result<(), String> {
     if nt.Signature != 0x00004550 {
         return Err("invalid pe signature".to_string());
     }
-    if nt.FileHeader.Machine != 0x8664 {
+    if nt.FileHeader.Machine != windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE(0x8664) {
         return Err("not x64 dll".to_string());
     }
-    if nt.OptionalHeader.Magic != 0x20B {
+    if nt.OptionalHeader.Magic != windows::Win32::System::Diagnostics::Debug::IMAGE_OPTIONAL_HEADER_MAGIC(0x20B) {
         return Err("not pe32+".to_string());
     }
 
