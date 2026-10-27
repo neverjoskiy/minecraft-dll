@@ -33,39 +33,64 @@ fn set_status(text: &str) {
     }
 }
 
+fn label(parent: HWND, text: &str, x: i32, y: i32, w: i32, h: i32, hinst: windows::Win32::Foundation::HINSTANCE) {
+    unsafe {
+        let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
+        let _ = CreateWindowExW(
+            WINDOW_EX_STYLE::default(),
+            windows::core::PCWSTR("Static\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+            windows::core::PCWSTR(wide.as_ptr()),
+            WS_CHILD | WS_VISIBLE,
+            x, y, w, h,
+            Some(parent),
+            None,
+            Some(hinst),
+            None,
+        );
+    }
+}
+
 unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     match msg {
         WM_CREATE => {
-            let hinst = GetModuleHandleW(None).unwrap_or_default();
-            let hinst_opt = Some(hinst.into());
+            let hinst = GetModuleHandleW(None).unwrap_or_default().into();
             let parent = Some(hwnd);
+            let font = windows::Win32::Graphics::Gdi::GetStockObject(windows::Win32::Graphics::Gdi::DEFAULT_GUI_FONT);
+
             let make_edit = |x, y, id| {
                 CreateWindowExW(
                     WINDOW_EX_STYLE::default(),
                     windows::core::PCWSTR("Edit\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                     windows::core::PCWSTR("\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                     WS_CHILD | WS_VISIBLE | WS_BORDER,
-                    x, y, 250, 22,
+                    x, y, 260, 22,
                     parent,
                     Some(windows::Win32::UI::WindowsAndMessaging::HMENU(id as *mut _)),
-                    hinst_opt,
+                    Some(hinst),
                     None,
                 )
                 .unwrap_or_default()
             };
+
+            label(hwnd, "Process:", 20, 24, 70, 18, hinst);
             HWND_PROCESS = make_edit(100, 20, ID_PROCESS);
+
+            label(hwnd, "PID:", 20, 54, 70, 18, hinst);
             HWND_PID = make_edit(100, 50, ID_PID);
+
+            label(hwnd, "DLL:", 20, 84, 70, 18, hinst);
             HWND_DLL = make_edit(100, 80, ID_DLL);
 
+            label(hwnd, "Method:", 20, 114, 70, 18, hinst);
             HWND_METHOD = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 windows::core::PCWSTR("ComboBox\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 windows::core::PCWSTR("\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | 3),
-                100, 110, 250, 80,
+                100, 110, 260, 80,
                 parent,
                 Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_METHOD as *mut _)),
-                hinst_opt,
+                Some(hinst),
                 None,
             )
             .unwrap_or_default();
@@ -78,12 +103,12 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
             HWND_WAIT = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
                 windows::core::PCWSTR("Button\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
-                windows::core::PCWSTR("Wait\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+                windows::core::PCWSTR("Wait for process\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 WINDOW_STYLE(WS_CHILD.0 | WS_VISIBLE.0 | 3),
-                100, 140, 80, 22,
+                100, 140, 130, 24,
                 parent,
                 Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_WAIT as *mut _)),
-                hinst_opt,
+                Some(hinst),
                 None,
             )
             .unwrap_or_default();
@@ -93,10 +118,10 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                 windows::core::PCWSTR("Button\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 windows::core::PCWSTR("Inject\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 WS_CHILD | WS_VISIBLE,
-                200, 140, 150, 22,
+                240, 140, 120, 24,
                 parent,
                 Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_INJECT as *mut _)),
-                hinst_opt,
+                Some(hinst),
                 None,
             );
 
@@ -105,13 +130,15 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                 windows::core::PCWSTR("Static\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 windows::core::PCWSTR("Ready\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
                 WS_CHILD | WS_VISIBLE,
-                20, 175, 330, 22,
+                20, 180, 340, 22,
                 parent,
                 Some(windows::Win32::UI::WindowsAndMessaging::HMENU(ID_STATUS as *mut _)),
-                hinst_opt,
+                Some(hinst),
                 None,
             )
             .unwrap_or_default();
+
+            let _ = font;
             LRESULT(0)
         }
         WM_COMMAND => {
@@ -202,7 +229,7 @@ pub fn run() -> i32 {
         };
         RegisterClassW(&wc);
 
-        let title: Vec<u16> = "Injector\0".encode_utf16().collect();
+        let title: Vec<u16> = "XZ Injector\0".encode_utf16().collect();
         let hwnd = CreateWindowExW(
             WINDOW_EX_STYLE::default(),
             windows::core::PCWSTR(class_name.as_ptr()),
