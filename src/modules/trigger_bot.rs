@@ -212,6 +212,15 @@ impl TriggerBotModule {
             return Ok(false);
         }
 
+        let player_blocking = ctx
+            .env
+            .call_method(&ctx.player, "isBlocking", "()Z", &[])
+            .map(|v| v.z().unwrap_or(false))
+            .unwrap_or(false);
+        if player_blocking {
+            return Ok(false);
+        }
+
         let special = minecraft::player_in_special_movement(ctx)?;
         let critical = minecraft::player_can_critical(ctx)?;
 
@@ -221,7 +230,13 @@ impl TriggerBotModule {
             } else {
                 0.8
             };
-            if minecraft::attack_strength(ctx)? < cooldown_gate {
+            let on_ground = minecraft::player_on_ground(ctx)?;
+            let cooldown_threshold = if on_ground { 0.92 } else { 0.95 };
+            let min_interval = if on_ground { 120u64 } else { 400u64 };
+            if minecraft::attack_strength(ctx)? < cooldown_threshold.max(cooldown_gate) {
+                return Ok(false);
+            }
+            if time::now_ms().saturating_sub(self.last_attack_at) < min_interval {
                 return Ok(false);
             }
         }
@@ -249,7 +264,10 @@ impl TriggerBotModule {
         config: &TriggerBotConfig,
         now: u64,
     ) -> JniResult<()> {
-        let _ = (target, config.sprint_control);
+        let _ = target;
+        if config.sprint_control {
+            let _ = minecraft::set_player_sprinting(ctx, false);
+        }
         minecraft::queue_vanilla_attack_click(ctx)?;
 
         self.last_target_id = Some(target_id);
