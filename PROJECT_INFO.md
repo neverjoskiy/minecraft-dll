@@ -292,6 +292,12 @@ pub trait ClientModule: Send {
 - Проверка архитектуры x64, повышение прав (SeDebugPrivilege), логи/конфиг в `%TEMP%\injector\`.
 - Сборка/тесты: `.github/workflows/build-injector.yml` (windows-latest, cargo test, cargo build --release, артефакт injector.exe).
 
+## TriggerBot (обновление)
+
+- Перенесены улучшения из neamaz: cooldown с учётом onGround (пороги 0.92/0.95 и интервалы 120/400 мс), проверка блокирования игрока (no-hit block), сброс спринта перед атакой при включённом `Sprint control`.
+- Сброс спринта выполняется через `minecraft::set_player_sprinting(ctx, false)` в `perform_attack`.
+- Не перенесены: shift-tap и attack-key hold/release (требуют отдельные модули).
+
 ## Ответственность
 
 Проект предназначен для модификации клиента Minecraft, что может нарушать условия использования игры и привести к блокировке аккаунта. Использование на свой страх и риск.

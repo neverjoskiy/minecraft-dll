@@ -225,13 +225,13 @@ impl TriggerBotModule {
         let critical = minecraft::player_can_critical(ctx)?;
 
         if !config.legacy_pvp {
-            let cooldown_gate = if config.tps_sync {
+            let cooldown_gate: f32 = if config.tps_sync {
                 (0.8 * tps::tick_multiplier()).min(1.0)
             } else {
                 0.8
             };
             let on_ground = minecraft::player_on_ground(ctx)?;
-            let cooldown_threshold = if on_ground { 0.92 } else { 0.95 };
+            let cooldown_threshold: f32 = if on_ground { 0.92 } else { 0.95 };
             let min_interval = if on_ground { 120u64 } else { 400u64 };
             if minecraft::attack_strength(ctx)? < cooldown_threshold.max(cooldown_gate) {
                 return Ok(false);
